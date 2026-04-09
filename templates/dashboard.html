@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Dashboard</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<style>
+.grid {
+  display: grid;
+  grid-template-columns: repeat(9, 40px);
+  gap: 3px;
+  justify-content: center;
+}
+
+.cell {
+  width: 40px;
+  height: 40px;
+  text-align: center;
+  font-size: 18px;
+  line-height: 40px;
+  border: 1px solid #ccc;
+  cursor: pointer;
+}
+
+.fixed {
+  background: #ddd;
+  font-weight: bold;
+}
+
+.selected {
+  background: #cce5ff;
+}
+
+.wrong {
+  background: #ffb3b3;
+}
+
+.correct {
+  background: #b6fcb6;
+}
+
+.number-pad button {
+  margin: 3px;
+  width: 40px;
+}
+</style>
+</head>
+
+<body class="bg-light">
+
+<div class="container text-center mt-4">
+<h2>Welcome, {{ username }} 👋</h2>
+<a href="/logout" class="btn btn-danger mb-3">Logout</a>
+
+<h4>Sudoku Game 🧩</h4>
+
+<div id="grid" class="grid"></div>
+
+<div class="number-pad mt-3">
+</div>
+
+</div>
+
+<script>
+// ===== GENERATOR SUDOKU =====
+
+// buat board kosong
+function createEmptyBoard() {
+  return Array.from({ length: 9 }, () => Array(9).fill(0));
+}
+
+// cek valid
+function isSafe(board, row, col, num) {
+  for (let x = 0; x < 9; x++) {
+    if (board[row][x] === num || board[x][col] === num) return false;
+  }
+
+  let startRow = row - row % 3;
+  let startCol = col - col % 3;
+
+  for (let i = 0; i < 3; i++)
+    for (let j = 0; j < 3; j++)
+      if (board[i + startRow][j + startCol] === num) return false;
+
+  return true;
+}
+
+// solve board (backtracking)
+function solve(board) {
+  for (let row = 0; row < 9; row++) {
+    for (let col = 0; col < 9; col++) {
+      if (board[row][col] === 0) {
+        let nums = shuffle([1,2,3,4,5,6,7,8,9]);
+        for (let num of nums) {
+          if (isSafe(board, row, col, num)) {
+            board[row][col] = num;
+            if (solve(board)) return true;
+            board[row][col] = 0;
+          }
+        }
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+// shuffle
+function shuffle(arr){
+  return arr.sort(()=>Math.random()-0.5);
+}
+
+// generate puzzle
+function generateSudoku(){
+  let board = createEmptyBoard();
+  solve(board);
+
+  let solution = JSON.parse(JSON.stringify(board));
+
+  // hapus angka random
+  for(let i=0;i<40;i++){
+    let r = Math.floor(Math.random()*9);
+    let c = Math.floor(Math.random()*9);
+    board[r][c] = 0;
+  }
+
+  return { puzzle: board, solution: solution };
+}
+
+// ===== GAME =====
+let current = generateSudoku();
+let selectedCell = null;
+
+function drawGrid(){
+  let grid = document.getElementById("grid");
+  grid.innerHTML = "";
+
+  for(let i=0;i<9;i++){
+    for(let j=0;j<9;j++){
+      let cell = document.createElement("div");
+      cell.classList.add("cell");
+
+      if(current.puzzle[i][j] !== 0){
+        cell.innerText = current.puzzle[i][j];
+        cell.classList.add("fixed");
+      } else {
+        cell.onclick = () => selectCell(cell, i, j);
+      }
+
+      cell.id = i+"-"+j;
+      grid.appendChild(cell);
+    }
+  }
+}
+
+function selectCell(cell,i,j){
+  document.querySelectorAll(".cell").forEach(c=>c.classList.remove("selected"));
+  cell.classList.add("selected");
+  selectedCell = {cell,i,j};
+}
+
+function fillNumber(num){
+  if(!selectedCell) return;
+
+  let {cell,i,j} = selectedCell;
+
+  cell.innerText = num;
+
+  if(num === current.solution[i][j]){
+    cell.classList.add("correct");
+    cell.classList.remove("wrong");
+  } else {
+    cell.classList.add("wrong");
+    cell.classList.remove("correct");
+  }
+}
+
+function drawPad(){
+  let pad = document.querySelector(".number-pad");
+  pad.innerHTML = "";
+
+  for(let n=1;n<=9;n++){
+    let btn = document.createElement("button");
+    btn.className="btn btn-primary";
+    btn.innerText=n;
+    btn.onclick=()=>fillNumber(n);
+    pad.appendChild(btn);
+  }
+}
+
+drawGrid();
+drawPad();
+</script>
+
+</body>
+</html>
