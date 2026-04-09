@@ -35,7 +35,11 @@ class User(UserMixin, db.Model):
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    return db.session.get(User, int(user_id))
+
+# ================= INIT DATABASE (FIX UTAMA) =================
+with app.app_context():
+    db.create_all()
 
 # ================= ROUTES =================
 
@@ -43,7 +47,8 @@ def load_user(user_id):
 def index():
     return redirect(url_for('login'))
 
-@app.route('/login', methods=['GET','POST'])
+# LOGIN
+@app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         user = User.query.filter_by(username=request.form['username']).first()
@@ -56,7 +61,8 @@ def login():
 
     return render_template('login.html')
 
-@app.route('/register', methods=['GET','POST'])
+# REGISTER
+@app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
         username = request.form['username']
@@ -75,11 +81,13 @@ def register():
 
     return render_template('register.html')
 
+# DASHBOARD
 @app.route('/dashboard')
 @login_required
 def dashboard():
     return render_template('dashboard.html', username=current_user.username)
 
+# LOGOUT
 @app.route('/logout')
 @login_required
 def logout():
@@ -88,7 +96,4 @@ def logout():
 
 # ================= RUN =================
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
-
     app.run(host='0.0.0.0', port=5000)
