@@ -105,6 +105,11 @@ def games():
 def sudoku():
     return render_template('sudoku.html')
 
+@app.route('/minesweeper')
+@login_required
+def minesweeper():
+    return render_template('minesweeper.html')
+
 # ================= RUN =================
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)

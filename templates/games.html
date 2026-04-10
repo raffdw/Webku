@@ -1,10 +1,43 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h2>Game Menu</h2>
 
-<ul>
-    <li><a href="/sudoku">Sudoku</a></li>
-</ul>
+<h2 style="margin-bottom:20px;">🎮 Game Center</h2>
+
+<div style="
+display:grid;
+grid-template-columns: repeat(auto-fit, minmax(180px,1fr));
+gap:20px;
+">
+
+    <!-- Sudoku -->
+    <div style="
+    padding:20px;
+    border-radius:10px;
+    background:#2c3e50;
+    color:white;
+    text-align:center;
+    cursor:pointer;
+    " onclick="location.href='/sudoku'">
+
+        <h3>🧩 Sudoku</h3>
+        <p>Solve the puzzle</p>
+    </div>
+
+    <!-- Minesweeper -->
+    <div style="
+    padding:20px;
+    border-radius:10px;
+    background:#27ae60;
+    color:white;
+    text-align:center;
+    cursor:pointer;
+    " onclick="location.href='/minesweeper'">
+
+        <h3>💣 Minesweeper</h3>
+        <p>Avoid the bombs!</p>
+    </div>
+
+</div>
 
 {% endblock %}
