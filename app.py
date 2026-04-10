@@ -94,6 +94,17 @@ def logout():
     logout_user()
     return redirect('/login')
 
+@app.route('/games')
+@login_required
+def games():
+    return render_template('games.html')
+
+
+@app.route('/sudoku')
+@login_required
+def sudoku():
+    return render_template('sudoku.html')
+
 # ================= RUN =================
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
