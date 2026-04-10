@@ -1,41 +1,136 @@
 {% extends "base.html" %}
-
 {% block content %}
 
-<h2 style="margin-bottom:20px;">🎮 Game Center</h2>
+<style>
+.container {
+    max-width: 800px;
+    margin: auto;
+    padding: 20px;
+}
 
-<div style="
-display:grid;
-grid-template-columns: repeat(auto-fit, minmax(180px,1fr));
-gap:20px;
-">
+h2 {
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+.game-card {
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 20px;
+    color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: 0.3s;
+}
+
+.game-card:hover {
+    transform: scale(1.02);
+}
+
+/* 🎨 WARNA */
+
+.blue {
+    background: linear-gradient(135deg, #1565c0, #42a5f5);
+}
+
+.gray {
+    background: linear-gradient(135deg, #555, #888);
+}
+
+.green {
+    background: linear-gradient(135deg, #1b5e20, #43a047);
+}
+
+/* ✨ HOVER GLOW */
+
+.blue:hover {
+    box-shadow: 0 0 15px rgba(66,165,245,0.6);
+}
+
+.gray:hover {
+    box-shadow: 0 0 15px rgba(200,200,200,0.4);
+}
+
+.green:hover {
+    box-shadow: 0 0 15px rgba(67,160,71,0.6);
+}
+
+.game-info h3 {
+    margin: 0;
+}
+
+.game-info p {
+    margin: 5px 0 0;
+    font-size: 14px;
+}
+
+/* ▶ BUTTON */
+
+.play-btn {
+    background: white;
+    color: black;
+    border: none;
+    border-radius: 8px;
+    padding: 6px 14px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: 0.2s;
+}
+
+.play-btn:hover {
+    background: #eee;
+}
+
+/* 📱 RESPONSIVE */
+
+@media (max-width: 600px) {
+    .game-card {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .play-btn {
+        align-self: flex-end;
+    }
+}
+</style>
+
+<div class="container">
+    <h2>🎮 Mini Games</h2>
 
     <!-- Sudoku -->
-    <div style="
-    padding:20px;
-    border-radius:10px;
-    background:#2c3e50;
-    color:white;
-    text-align:center;
-    cursor:pointer;
-    " onclick="location.href='/sudoku'">
-
-        <h3>🧩 Sudoku</h3>
-        <p>Solve the puzzle</p>
+    <div class="game-card blue">
+        <div class="game-info">
+            <h3>🧩 Sudoku</h3>
+            <p>Latih logika kamu</p>
+        </div>
+        <a href="/sudoku">
+            <button class="play-btn">Play</button>
+        </a>
     </div>
 
     <!-- Minesweeper -->
-    <div style="
-    padding:20px;
-    border-radius:10px;
-    background:#27ae60;
-    color:white;
-    text-align:center;
-    cursor:pointer;
-    " onclick="location.href='/minesweeper'">
+    <div class="game-card gray">
+        <div class="game-info">
+            <h3>💣 Minesweeper</h3>
+            <p>Hindari bom dan buka semua area</p>
+        </div>
+        <a href="/minesweeper">
+            <button class="play-btn">Play</button>
+        </a>
+    </div>
 
-        <h3>💣 Minesweeper</h3>
-        <p>Avoid the bombs!</p>
+    <!-- Solitaire -->
+    <div class="game-card green">
+        <div class="game-info">
+            <h3>🃏 Solitaire</h3>
+            <p>Main santai ala kartu klasik</p>
+        </div>
+        <a href="/solitaire">
+            <button class="play-btn">Play</button>
+        </a>
     </div>
 
 </div>

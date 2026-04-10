@@ -110,6 +110,47 @@ def sudoku():
 def minesweeper():
     return render_template('minesweeper.html')
 
+@app.route('/solitaire')
+def solitaire():
+    import random
+
+    suits = ['hearts', 'diamonds', 'clubs', 'spades']
+    values = ['ace', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'jack', 'queen', 'king']
+
+    deck = []
+
+    for suit in suits:
+        for value in values:
+            deck.append({
+                'suit': suit,
+                'value': value,
+                'image': f"/static/cards/{suit}/{value}.png"
+            })
+
+    random.shuffle(deck)
+
+    # 🎯 BAGI KE 7 KOLOM (tableau)
+    tableau = []
+    index = 0
+
+    for i in range(7):
+        col = []
+        for j in range(i + 1):
+            card = deck[index]
+            card['hidden'] = (j != i)  # semua kecuali paling bawah = hidden
+            col.append(card)
+            index += 1
+        tableau.append(col)
+
+    # 🎯 SISA = stock
+    stock = deck[index:]
+
+    return render_template(
+        'solitaire.html',
+        tableau=tableau,
+        stock=stock
+    )
+
 # ================= RUN =================
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)

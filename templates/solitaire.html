@@ -1,0 +1,331 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<style>
+body {
+    background:#2e7d32;
+    touch-action: manipulation;
+    user-select: none;
+}
+
+img {
+    -webkit-user-drag: none;
+    user-select: none;
+}
+
+.game-container {
+    max-width: 950px;
+    margin:auto;
+    color:white;
+}
+
+.top {
+    display:flex;
+    justify-content:space-between;
+    margin-bottom:20px;
+}
+
+.left-top,.right-top {
+    display:flex;
+    gap:10px;
+}
+
+.pile {
+    width:70px;
+    height:100px;
+    border:2px dashed rgba(255,255,255,0.4);
+    border-radius:8px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+.card {
+    width:70px;
+    position:absolute;
+    cursor:pointer;
+}
+
+.tableau {
+    display:flex;
+    justify-content:center;
+    gap:12px;
+}
+
+.column {
+    position:relative;
+    width:70px;
+    min-height:120px;
+}
+
+.selected {
+    outline:3px solid yellow;
+}
+</style>
+
+<div class="game-container">
+
+<h2>🃏 Solitaire</h2>
+
+<div>⏱ <span id="timer">0</span>s
+<button onclick="undo()">Undo</button></div>
+
+<div class="top">
+
+<div class="left-top">
+<div class="pile" onclick="drawCard()">
+<img src="/static/cards/back.png" class="card">
+</div>
+
+<div id="waste" class="pile"></div>
+</div>
+
+<div class="right-top" id="foundation"></div>
+
+</div>
+
+<div class="tableau" id="tableau"></div>
+
+</div>
+
+<script>
+document.addEventListener("contextmenu", e => e.preventDefault());
+
+let tableau = {{ tableau|tojson }};
+let stock = {{ stock|tojson }};
+let waste = [];
+
+let foundation = {
+hearts:[], diamonds:[], clubs:[], spades:[]
+};
+
+let history=[];
+let selected=null;
+
+// TIMER
+let time=0;
+setInterval(()=>{
+time++;
+document.getElementById("timer").innerText=time;
+},1000);
+
+// SAVE
+function saveState(){
+history.push(JSON.stringify({tableau,stock,waste,foundation}));
+}
+
+// UNDO
+function undo(){
+if(history.length===0)return;
+let prev=JSON.parse(history.pop());
+tableau=prev.tableau;
+stock=prev.stock;
+waste=prev.waste;
+foundation=prev.foundation;
+renderAll();
+}
+
+// DRAW
+function drawCard(){
+saveState();
+if(stock.length>0){
+waste.push(stock.pop());
+}else{
+stock=waste.reverse();
+waste=[];
+}
+renderAll();
+}
+
+const values=['ace','2','3','4','5','6','7','8','9','10','jack','queen','king'];
+const red=['hearts','diamonds'];
+
+function canMove(card,target){
+if(!target) return card.value==="king";
+return (red.includes(card.suit)!==red.includes(target.suit)) &&
+(values.indexOf(card.value)===values.indexOf(target.value)-1);
+}
+
+function canMoveToFoundation(card){
+let pile=foundation[card.suit];
+if(pile.length===0) return card.value==="ace";
+return values.indexOf(card.value)===values.indexOf(pile.at(-1).value)+1;
+}
+
+// 🔥 HANDLE TAP (STACK + KING FIX)
+function handleTap(colIndex,cardIndex){
+let from = tableau[colIndex];
+let card = from[cardIndex];
+
+if(card.hidden) return;
+
+// SELECT
+if(!selected){
+selected={colIndex,cardIndex};
+renderAll();
+return;
+}
+
+// MOVE
+let movingStack = tableau[selected.colIndex].slice(selected.cardIndex);
+let firstCard = movingStack[0];
+
+// 👉 FOUNDATION PRIORITY (hanya 1 kartu)
+if(movingStack.length===1 && canMoveToFoundation(firstCard)){
+saveState();
+foundation[firstCard.suit].push(firstCard);
+tableau[selected.colIndex].splice(selected.cardIndex,1);
+
+if(tableau[selected.colIndex].length>0){
+tableau[selected.colIndex].at(-1).hidden=false;
+}
+
+selected=null;
+renderAll();
+return;
+}
+
+// 👉 KING → AUTO KE KOLOM KOSONG
+if(firstCard.value==="king"){
+for(let i=0;i<tableau.length;i++){
+if(tableau[i].length===0){
+saveState();
+
+tableau[i] = tableau[i].concat(movingStack);
+tableau[selected.colIndex].splice(selected.cardIndex);
+
+if(tableau[selected.colIndex].length>0){
+tableau[selected.colIndex].at(-1).hidden=false;
+}
+
+selected=null;
+renderAll();
+return;
+}
+}
+}
+
+// 👉 NORMAL MOVE (STACK)
+let targetCol = tableau[colIndex];
+let targetCard = targetCol.at(-1);
+
+if(canMove(firstCard,targetCard)){
+saveState();
+
+targetCol.push(...movingStack);
+tableau[selected.colIndex].splice(selected.cardIndex);
+
+if(tableau[selected.colIndex].length>0){
+tableau[selected.colIndex].at(-1).hidden=false;
+}
+}
+
+selected=null;
+renderAll();
+}
+
+// RENDER
+function renderTableau(){
+let board=document.getElementById("tableau");
+board.innerHTML="";
+
+tableau.forEach((col,i)=>{
+let column=document.createElement("div");
+column.className="column";
+
+col.forEach((card,j)=>{
+let img=document.createElement("img");
+
+img.src=card.hidden?"/static/cards/back.png":card.image;
+img.className="card";
+img.style.top=(j*22)+"px";
+
+if(!card.hidden){
+img.onclick=()=>handleTap(i,j);
+}
+
+if(selected && selected.colIndex===i && selected.cardIndex===j){
+img.classList.add("selected");
+}
+
+column.appendChild(img);
+});
+
+board.appendChild(column);
+});
+}
+
+function renderWaste(){
+let w=document.getElementById("waste");
+w.innerHTML="";
+if(waste.length>0){
+let img=document.createElement("img");
+img.src=waste.at(-1).image;
+img.className="card";
+
+img.onclick=()=>{
+let card=waste.at(-1);
+
+// FOUNDATION
+if(canMoveToFoundation(card)){
+saveState();
+foundation[card.suit].push(card);
+waste.pop();
+renderAll();
+return;
+}
+
+// TABLEAU
+for(let i=0;i<tableau.length;i++){
+let top=tableau[i].at(-1);
+if(canMove(card,top)){
+saveState();
+tableau[i].push(card);
+waste.pop();
+renderAll();
+return;
+}
+}
+};
+
+w.appendChild(img);
+}
+}
+
+function renderFoundation(){
+let f=document.getElementById("foundation");
+f.innerHTML="";
+for(let s in foundation){
+let div=document.createElement("div");
+div.className="pile";
+let pile=foundation[s];
+if(pile.length>0){
+let img=document.createElement("img");
+img.src=pile.at(-1).image;
+img.className="card";
+div.appendChild(img);
+}
+f.appendChild(div);
+}
+}
+
+function checkWin(){
+let total=0;
+for(let s in foundation) total+=foundation[s].length;
+if(total===52){
+setTimeout(()=>alert("🎉 YOU WIN!"),300);
+}
+}
+
+function renderAll(){
+renderTableau();
+renderWaste();
+renderFoundation();
+checkWin();
+}
+
+renderAll();
+</script>
+
+{% endblock %}
