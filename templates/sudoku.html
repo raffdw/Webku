@@ -1,0 +1,240 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2>Sudoku Game</h2>
+
+<div style="margin-bottom:10px;">
+    <button onclick="newGame()">🔄 New Game</button>
+    <button onclick="togglePause()">⏯ Play / Pause</button>
+</div>
+
+<p>⏱ Time: <span id="timer">0</span>s</p>
+
+<div id="board"></div>
+<div id="numberPad"></div>
+
+<style>
+    table td {
+        transition: 0.2s;
+    }
+
+    button {
+        margin: 3px;
+        padding: 8px 12px;
+        border-radius: 5px;
+        border: none;
+        background: #3498db;
+        color: white;
+        cursor: pointer;
+    }
+
+    button:hover {
+        background: #2980b9;
+    }
+</style>
+
+<script>
+let board = [];
+let solution = [];
+let selectedCell = null;
+let timer = 0;
+let interval = null;
+let paused = false;
+
+// ================= SHUFFLE =================
+function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+        let j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+}
+
+// ================= GENERATOR =================
+function shuffleCopy(arr) {
+    let copy = [...arr];
+    shuffle(copy);
+    return copy;
+}
+
+function generateFullBoard() {
+    let base = 3;
+    let side = 9;
+
+    function pattern(r, c) {
+        return (base * (r % base) + Math.floor(r / base) + c) % side;
+    }
+
+    let rBase = [0,1,2];
+    let rows = [].concat(...rBase.map(g => shuffleCopy(rBase).map(r => g*3 + r)));
+    let cols = [].concat(...rBase.map(g => shuffleCopy(rBase).map(c => g*3 + c)));
+    let nums = shuffleCopy([1,2,3,4,5,6,7,8,9]);
+
+    let board = [];
+    for (let r of rows) {
+        let row = [];
+        for (let c of cols) {
+            row.push(nums[pattern(r,c)]);
+        }
+        board.push(row);
+    }
+
+    return board;
+}
+
+function removeCells(board, difficulty=40) {
+    let puzzle = JSON.parse(JSON.stringify(board));
+    let count = difficulty;
+
+    while (count > 0) {
+        let r = Math.floor(Math.random() * 9);
+        let c = Math.floor(Math.random() * 9);
+
+        if (puzzle[r][c] !== "") {
+            puzzle[r][c] = "";
+            count--;
+        }
+    }
+
+    return puzzle;
+}
+
+function generateBoard() {
+    solution = generateFullBoard();
+    board = removeCells(solution, 40);
+}
+
+// ================= RENDER =================
+function renderBoard() {
+    let html = "<table style='border-collapse:collapse;'>";
+
+    for (let r = 0; r < 9; r++) {
+        html += "<tr>";
+        for (let c = 0; c < 9; c++) {
+
+            let value = board[r][c];
+
+            let isSelected = selectedCell && selectedCell.r === r && selectedCell.c === c;
+            let sameRow = selectedCell && selectedCell.r === r;
+            let sameCol = selectedCell && selectedCell.c === c;
+            let sameNumber = selectedCell && value !== "" && value === board[selectedCell.r][selectedCell.c];
+
+            let bg = "#fff";
+
+            if (value) bg = "#ecf0f1";
+            if (sameRow || sameCol) bg = "#dfe6e9";
+            if (sameNumber) bg = "#ffeaa7";
+            if (isSelected) bg = "#74b9ff";
+
+            let borderTop = (r % 3 === 0) ? "3px solid black" : "1px solid #aaa";
+            let borderLeft = (c % 3 === 0) ? "3px solid black" : "1px solid #aaa";
+            let borderRight = (c === 8) ? "3px solid black" : "1px solid #aaa";
+            let borderBottom = (r === 8) ? "3px solid black" : "1px solid #aaa";
+
+            html += `
+            <td onclick="selectCell(${r},${c})"
+                style="
+                width:42px;
+                height:42px;
+                text-align:center;
+                font-size:18px;
+                cursor:pointer;
+                background:${bg};
+                border-top:${borderTop};
+                border-left:${borderLeft};
+                border-right:${borderRight};
+                border-bottom:${borderBottom};
+                ">
+                ${value}
+            </td>`;
+        }
+        html += "</tr>";
+    }
+
+    html += "</table>";
+    document.getElementById("board").innerHTML = html;
+}
+
+// ================= SELECT =================
+function selectCell(r, c) {
+    if (board[r][c] !== "") return;
+    selectedCell = {r, c};
+    renderBoard();
+}
+
+// ================= INPUT =================
+function createPad() {
+    let html = "<div style='margin-top:15px;'>";
+    for (let i = 1; i <= 9; i++) {
+        html += `<button onclick="inputNumber(${i})">${i}</button>`;
+    }
+    html += "</div>";
+    document.getElementById("numberPad").innerHTML = html;
+}
+
+function inputNumber(num) {
+    if (!selectedCell || paused) return;
+
+    let {r, c} = selectedCell;
+
+    if (solution[r][c] === num) {
+        board[r][c] = num;
+    } else {
+        alert("❌ Salah!");
+    }
+
+    renderBoard();
+    checkWin();
+}
+
+// ================= TIMER =================
+function startTimer() {
+    clearInterval(interval);
+    timer = 0;
+    document.getElementById("timer").innerText = timer;
+
+    interval = setInterval(() => {
+        if (!paused) {
+            timer++;
+            document.getElementById("timer").innerText = timer;
+        }
+    }, 1000);
+}
+
+// ================= PAUSE =================
+function togglePause() {
+    paused = !paused;
+
+    if (paused) {
+        document.getElementById("board").style.filter = "blur(8px)";
+    } else {
+        document.getElementById("board").style.filter = "none";
+    }
+}
+
+// ================= WIN =================
+function checkWin() {
+    for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+            if (board[r][c] !== solution[r][c]) return;
+        }
+    }
+
+    clearInterval(interval);
+    alert("🎉 Kamu menang!");
+}
+
+// ================= NEW GAME =================
+function newGame() {
+    generateBoard();
+    renderBoard();
+    startTimer();
+}
+
+// ================= INIT =================
+createPad();
+newGame();
+
+</script>
+
+{% endblock %}
